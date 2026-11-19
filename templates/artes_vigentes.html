@@ -1,0 +1,10 @@
+{% extends 'base.html' %}{% block content %}
+<h1>Artes vigentes</h1><p class="muted">Versión oficial actualmente efectiva por empresa y país. Para versiones transitorias consulte la ficha del arte.</p>
+<section class="panel"><form method="get" class="grid">
+<div><label>Buscar SAP, código o producto</label><input name="q" value="{{ q }}" placeholder="Ej. 10004567"></div>
+<div><label>Empresa</label><select name="company"><option value="0">Todas las autorizadas</option>{% for c in companies %}<option value="{{ c.id }}" {% if company==c.id %}selected{% endif %}>{{ c.name }}</option>{% endfor %}</select></div>
+<div><label>País</label><select name="country"><option value="0">Todos</option>{% for c in countries %}<option value="{{ c.id }}" {% if country==c.id %}selected{% endif %}>{{ c.name }}</option>{% endfor %}</select></div>
+<div><button class="btn" type="submit">Buscar artes</button></div></form></section>
+<section class="panel scroll"><table><thead><tr><th>SAP</th><th>Empresa</th><th>Producto</th><th>País</th><th>Versión</th><th>Estado</th><th>Acciones</th></tr></thead><tbody>
+{% for a in items %}<tr><td class="code">{{ a.sap_code }}</td><td>{{ a.company_name }}</td><td>{{ a.product }}</td><td>{{ a.country_name }}</td><td>{{ a.local_version or a.revision }}</td><td><span class="badge ok">{{ a.status }}</span></td><td><a href="/artes/{{ a.art_id }}">Ver expediente</a> · <a href="/documentos/{{ a.version_id }}">PDF</a> · <a href="/artes/{{ a.art_id }}/cambios/nuevo">Solicitar cambio</a></td></tr>{% else %}<tr><td colspan="7">No hay artes oficialmente vigentes con estos criterios. Las versiones pendientes o sin fecha de vigencia no aparecen aquí.</td></tr>{% endfor %}</tbody></table></section>
+{% endblock %}

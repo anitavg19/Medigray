@@ -1,0 +1,10 @@
+{% extends 'base.html' %}{% block content %}
+<h1>Historial de artes</h1><p class="muted">Incluye versiones vigentes, pendientes y anteriores. Ninguna revisión histórica se elimina por consultar esta pantalla.</p>
+<section class="panel"><form method="get" class="grid">
+<div><label>Buscar SAP, código o producto</label><input name="q" value="{{ q }}" placeholder="Ej. 10004567"></div>
+<div><label>Empresa</label><select name="company"><option value="0">Todas las autorizadas</option>{% for c in companies %}<option value="{{ c.id }}" {% if company==c.id %}selected{% endif %}>{{ c.name }}</option>{% endfor %}</select></div>
+<div><label>País</label><select name="country"><option value="0">Todos</option>{% for c in countries %}<option value="{{ c.id }}" {% if country==c.id %}selected{% endif %}>{{ c.name }}</option>{% endfor %}</select></div>
+<div><button class="btn" type="submit">Buscar historial</button></div></form></section>
+<section class="panel scroll"><table><thead><tr><th>Código SAP</th><th>Empresa</th><th>Producto</th><th>Revisión</th><th>País</th><th>Versión país</th><th>Estado</th><th>Documentos</th></tr></thead><tbody>
+{% for a in items %}<tr><td class="code">{{ a.sap_code }}</td><td>{{ a.company_name }}</td><td>{{ a.product }}</td><td>{{ a.revision }}</td><td>{{ a.country_name or 'Sin asignar' }}</td><td>{{ a.local_version or '—' }}</td><td><span class="badge">{{ a.status or 'Sin asignar' }}</span></td><td><a href="/artes/{{ a.art_id }}">Expediente</a> · <a href="/documentos/{{ a.version_id }}">PDF de revisión</a></td></tr>{% else %}<tr><td colspan="8">Sin versiones registradas con estos criterios.</td></tr>{% endfor %}</tbody></table></section>
+{% endblock %}
