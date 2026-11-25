@@ -1,0 +1,74 @@
+{% extends 'base.html' %}
+{% block content %}
+<section class="hero-lite">
+  <div class="section-eyebrow">CONTROL DE ARTES · {{ empresa_nombre }}</div>
+  <h1>Artes vigentes y seguimiento</h1>
+  <p class="ui-page-lead" style="margin-bottom:0">Consulte el arte principal autorizado y las versiones anteriores con uso transitorio. Las fechas de seguimiento son específicas de cada versión y país.</p>
+</section>
+
+<div class="grid" style="grid-template-columns:repeat(auto-fit,minmax(175px,1fr));margin-bottom:20px">
+  <div class="panel" style="margin:0"><div class="muted">Vigentes principales</div><h2 style="font-size:27px;margin:8px 0 0">{{ metrics.principales }}</h2></div>
+  <div class="panel" style="margin:0"><div class="muted">En agotamiento</div><h2 style="font-size:27px;margin:8px 0 0">{{ metrics.transitorios }}</h2></div>
+  <div class="panel" style="margin:0"><div class="muted">Vencen en 3 meses</div><h2 style="font-size:27px;margin:8px 0 0;color:#b36b12">{{ metrics.tres_meses }}</h2></div>
+  <div class="panel" style="margin:0"><div class="muted">Vencen entre 3 y 6 meses</div><h2 style="font-size:27px;margin:8px 0 0;color:#b36b12">{{ metrics.seis_meses }}</h2></div>
+  <div class="panel" style="margin:0"><div class="muted">Plazo vencido / por revisar</div><h2 style="font-size:27px;margin:8px 0 0;color:#a62e3b">{{ metrics.vencidos }}</h2></div>
+  <div class="panel" style="margin:0"><div class="muted">Sin fecha definida</div><h2 style="font-size:27px;margin:8px 0 0">{{ metrics.sin_fecha }}</h2></div>
+</div>
+
+<section class="panel">
+  <div class="flex" style="justify-content:space-between"><h2>Buscar artes</h2><a class="btn gray sm" href="/homologacion">◎ Homologación regional</a></div>
+  <form method="get" action="/artes/vigentes">
+    <div class="ui-form-grid">
+      <div><label for="search-art">SAP, código, producto, versión o país</label><input id="search-art" name="q" value="{{ q }}" placeholder="Escriba para buscar"></div>
+      <div><label for="country-art">País</label><select id="country-art" name="country">
+        <option value="0">Todos los países</option>
+        {% for c in countries %}<option value="{{c.id}}" {% if country == c.id %}selected{% endif %}>{{c.name}}</option>{% endfor %}
+      </select></div>
+      <div><label for="filter-art">Tipo de seguimiento</label><select id="filter-art" name="filtro">
+        {% for val,label in [('todos','Todas las versiones autorizadas'),('principal','Vigente principal'),('transitorio','En agotamiento'),('3m','Vence en próximos 3 meses'),('6m','Vence entre 3 y 6 meses'),('vencido','Plazo vencido'),('sin_fecha','Sin fecha definida')] %}
+        <option value="{{ val }}" {% if filtro == val %}selected{% endif %}>{{ label }}</option>
+        {% endfor %}
+      </select></div>
+      <div style="display:flex;align-items:center;gap:8px"><button class="btn" type="submit">Filtrar</button><a class="btn gray" href="/artes/vigentes">Limpiar</a></div>
+    </div>
+  </form>
+</section>
+
+<section class="panel">
+  <div class="flex" style="justify-content:space-between;margin-bottom:16px">
+    <h2 style="margin:0">Versiones autorizadas ({{ rows|length }})</h2>
+    <span class="muted">Corte: {{ hoy }}</span>
+  </div>
+  <div class="scroll">
+    <table>
+      <thead><tr><th>SAP / Producto</th><th>Código de arte</th><th>País</th><th>Versión</th><th>Estado</th><th>Fecha límite</th><th>Seguimiento</th><th>Documento</th></tr></thead>
+      <tbody>
+      {% for r in rows %}
+      <tr>
+        <td><strong>{{ r.sap_code }}</strong><div>{{ r.product }}</div><div class="muted">{{ r.packaging_type }}</div></td>
+        <td><a href="/artes/{{r.art_id}}">{{ r.master_code }}</a></td>
+        <td>{{ r.country }}</td>
+        <td><strong>{{ r.local_version }}</strong><div class="muted">Rev. {{ r.revision }}</div></td>
+        <td><span class="badge {% if r.status == 'Vigente Oficial' %}ok{% else %}warn{% endif %}">{{ 'Vigente principal' if r.status == 'Vigente Oficial' else 'En agotamiento' }}</span></td>
+        <td>{{ r.transition_until or 'No registrada' if r.status == 'Vigente Transitorio' else 'No aplica' }}</td>
+        <td>
+          {% if r.alerta.startswith('Plazo vencido') %}<span class="badge red">{{ r.alerta }}</span>
+          {% elif r.alerta.startswith('Vence') or r.alerta.startswith('Sin fecha') or r.alerta.startswith('Fecha inválida') %}<span class="badge warn">{{ r.alerta }}</span>
+          {% else %}<span class="badge ok">{{ r.alerta }}</span>{% endif %}
+          {% if r.dias_restantes is not none %}<div class="muted">{{ r.dias_restantes }} días</div>{% endif %}
+        </td>
+        <td>
+          <a href="/documentos/{{r.version_id}}">PDF versión</a>
+          {% if r.drive_link %}<div><a href="{{r.drive_link}}" target="_blank" rel="noopener noreferrer">Documento inicial en Drive</a></div>{% endif %}
+        </td>
+      </tr>
+      {% else %}
+      <tr><td colspan="8">No hay versiones con estado «Vigente Oficial» o «Vigente Transitorio» que coincidan con los filtros. Consulte <a href="/">Inicio</a> para ver artes que aún no tienen una versión autorizada.</td></tr>
+      {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  <p class="muted" style="margin-top:15px">Las alertas se calculan únicamente con <strong>fin de transición</strong> registrado. No representan una fecha de vencimiento regulatorio del producto ni autorizan por sí mismas a utilizar un arte. La condición de uso debe confirmarse con Regulatorios.</p>
+  <p class="muted">Para identificar si un diseño es distinto en otro país, utilice <a href="/homologacion">Homologación regional</a>; no se deduce la equivalencia solo del código de versión.</p>
+</section>
+{% endblock %}

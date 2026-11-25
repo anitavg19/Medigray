@@ -1,0 +1,390 @@
+
+<!doctype html>
+<html lang="es">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+
+    <title>Medigray | DR Pharma · Inversiones Oridama</title>
+
+    <style>
+        :root {
+            font-family: Inter, 'Segoe UI', Arial, sans-serif;
+            color: #17263e;
+            background: #f4f7fb;
+            font-size: 14px;
+        }
+
+        * {
+            box-sizing: border-box;
+        }
+
+        body {
+            margin: 0;
+        }
+
+        a {
+            color: #1262b1;
+            text-decoration: none;
+        }
+
+        a:hover {
+            text-decoration: underline;
+        }
+
+        .shell {
+            display: flex;
+            min-height: 100vh;
+        }
+
+        .sidebar {
+            background: #101e32;
+            color: #e1edf9;
+            width: 235px;
+            padding: 26px 16px;
+            flex-shrink: 0;
+        }
+
+        .brand {
+            font-weight: 800;
+            font-size: 19px;
+            line-height: 1.5;
+            margin-bottom: 32px;
+        }
+
+        .brand small {
+            display: block;
+            color: #8db2ce;
+            font-size: 11px;
+            font-weight: 500;
+            letter-spacing: 0.8px;
+        }
+
+        .sidebar a {
+            color: #cfdef2;
+            display: block;
+            padding: 13px;
+            border-radius: 8px;
+            margin-bottom: 4px;
+        }
+
+        .sidebar a:hover {
+            background: #243b55;
+            text-decoration: none;
+        }
+
+        .main {
+            padding: 28px 36px;
+            max-width: 1550px;
+            width: 100%;
+            margin: 0 auto;
+        }
+
+        h1 {
+            font-size: 25px;
+            margin: 0 0 14px;
+        }
+
+        h2 {
+            font-size: 18px;
+            margin: 4px 0 18px;
+        }
+
+        h3 {
+            font-size: 15px;
+        }
+
+        .top {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 24px;
+            gap: 12px;
+        }
+
+        .muted {
+            color: #64748b;
+            font-size: 12px;
+        }
+
+        .panel {
+            background: white;
+            border: 1px solid #dfe7f2;
+            border-radius: 12px;
+            padding: 22px;
+            margin-bottom: 20px;
+            box-shadow: 0 2px 8px #10203a07;
+        }
+
+        .grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+            gap: 18px;
+        }
+
+        .flex {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+
+        .btn {
+            border: 0;
+            display: inline-block;
+            background: #1b65ae;
+            color: white;
+            border-radius: 8px;
+            padding: 10px 15px;
+            font-weight: 650;
+            font-size: 13px;
+            cursor: pointer;
+        }
+
+        .btn:hover {
+            background: #13518e;
+            color: white;
+            text-decoration: none;
+        }
+
+        .btn.gray {
+            background: #e8eef5;
+            color: #213650;
+        }
+
+        .btn.danger {
+            background: #a93142;
+        }
+
+        .btn.sm {
+            padding: 6px 10px;
+            font-size: 12px;
+        }
+
+        .badge {
+            display: inline-block;
+            background: #e8eff8;
+            color: #385473;
+            padding: 5px 8px;
+            border-radius: 6px;
+            font-size: 12px;
+            font-weight: 650;
+        }
+
+        .badge.ok {
+            background: #d9f5e5;
+            color: #166534;
+        }
+
+        .badge.warn {
+            background: #fff1d3;
+            color: #8c5a0a;
+        }
+
+        .badge.red {
+            background: #fee2e2;
+            color: #991b1b;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            text-align: left;
+            font-size: 13px;
+        }
+
+        th {
+            color: #63758d;
+            font-size: 12px;
+            font-weight: 700;
+            background: #f8fafc;
+        }
+
+        td, th {
+            border-bottom: 1px solid #e6edf5;
+            padding: 11px 9px;
+            vertical-align: top;
+        }
+
+        tr:last-child td {
+            border-bottom: 0;
+        }
+
+        .scroll {
+            overflow: auto;
+        }
+
+        label {
+            display: block;
+            color: #36495f;
+            font-weight: 650;
+            margin: 0 0 6px;
+        }
+
+        input, select, textarea {
+            font: inherit;
+            border: 1px solid #cbd5e1;
+            border-radius: 7px;
+            padding: 10px;
+            width: 100%;
+            background: white;
+            color: #14253d;
+            margin-bottom: 13px;
+        }
+
+        input:focus,
+        textarea:focus,
+        select:focus {
+            outline: 2px solid #93c5fd;
+        }
+
+        textarea {
+            min-height: 85px;
+            resize: vertical;
+        }
+
+        .field {
+            min-width: 210px;
+            flex: 1;
+        }
+
+        .notice {
+            padding: 12px;
+            border-radius: 8px;
+            background: #fff4df;
+            color: #825600;
+            margin-bottom: 15px;
+        }
+
+        .code {
+            font-family: Consolas, monospace;
+            font-size: 12px;
+            overflow-wrap: anywhere;
+        }
+
+        .user {
+            color: #63758d;
+            font-size: 12px;
+        }
+
+        .login {
+            max-width: 430px;
+            margin: 12vh auto;
+            background: white;
+            padding: 32px;
+            border-radius: 16px;
+            border: 1px solid #e0e8f1;
+        }
+
+        small {
+            color: #64748b;
+        }
+
+        @media (max-width: 750px) {
+            .shell {
+                display: block;
+            }
+
+            .sidebar {
+                width: 100%;
+                padding: 14px;
+            }
+
+            .sidebar a {
+                display: inline-block;
+                margin: 0;
+                padding: 8px;
+            }
+
+            .brand {
+                margin-bottom: 12px;
+            }
+
+            .main {
+                padding: 18px;
+            }
+
+            .top {
+                align-items: flex-start;
+                flex-direction: column;
+            }
+
+            table {
+                min-width: 620px;
+            }
+        }
+    </style>
+</head>
+
+<body>
+
+{% if u %}
+
+<div class="shell">
+
+    <aside class="sidebar">
+
+        <div class="brand">
+            ◈ Medigray
+            <small>DR PHARMA · INVERSIONES ORIDAMA</small>
+        </div>
+
+        <nav><a href="/solicitudes">☷ Solicitudes registradas</a><a href="/compras">▣ Compras</a><a href="/proveedores-control">▤ Proveedores</a>
+            <a href="/">▦ Inicio y consulta</a>
+
+            <a href="/artes/vigentes">✓ Artes vigentes</a>
+<a href="/artes/historial">◷ Historial de artes</a>
+<a href="/alertas">◷ Alertas y pendientes</a>
+
+            {% if u.role == 'Administrador' %}
+                <a href="/usuarios">♙ Usuarios</a>
+                <a href="/configuracion">⚙ Configuración</a>
+            {% endif %}
+        </nav>
+
+        <div class="muted"
+             style="color:#b4c7de;margin:24px 8px">
+            MVP local · Software gratuito
+        </div>
+
+    </aside>
+
+    <main class="main">
+
+        <div class="top">
+
+            <div>
+                <div class="user">
+                    Conectado: {{ u.email }} · {{ u.role }}
+                </div>
+            </div>
+
+            <form action="/logout" method="post">
+                <input type="hidden"
+                       name="csrf_token"
+                       value="{{ csrf }}">
+
+                <button class="btn gray sm" type="submit">
+                    Cerrar sesión
+                </button>
+            </form>
+
+        </div>
+
+        {% block content %}
+        {% endblock %}
+
+    </main>
+
+</div>
+
+{% else %}
+
+    {% block login %}
+    {% endblock %}
+
+{% endif %}
+
+</body>
+</html>
+

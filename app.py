@@ -81,6 +81,10 @@ def init_db():
         for x in ['Costa Rica','Guatemala','Honduras','El Salvador','Nicaragua','Panamá','República Dominicana']:
             c.execute('INSERT OR IGNORE INTO countries(name) VALUES(?)',(x,))
 init_db()
+# Documento externo por arte; no guarda credenciales ni copia automática de Drive.
+with conn() as _c:
+    _c.execute('CREATE TABLE IF NOT EXISTS art_document_links (id INTEGER PRIMARY KEY, company_id INTEGER NOT NULL REFERENCES companies(id), art_id INTEGER NOT NULL REFERENCES arts(id), url TEXT NOT NULL, description TEXT, created_by INTEGER NOT NULL REFERENCES users(id), created_at TEXT NOT NULL)')
+
 
 def hash_pw(pw):
     salt = secrets.token_bytes(16)
@@ -148,7 +152,25 @@ def csrf(req, value):
 def view(req, tpl, **data):
     u=user(req)
     if not req.session.get('csrf'): req.session['csrf']=secrets.token_urlsafe(32)
-    return templates.TemplateResponse(req,tpl,{'u':u,'csrf':req.session.get('csrf',''),**data})
+    empresas_disponibles = []
+    empresa_actual = 0
+    empresa_nombre = 'Seleccione una empresa'
+    if u:
+        with conn() as c:
+            empresas_disponibles = [dict(r) for r in c.execute(
+                'SELECT co.id,co.name FROM companies co JOIN user_companies uc ON uc.company_id=co.id WHERE uc.user_id=? ORDER BY co.name',
+                (u['id'],)).fetchall()]
+        permitidas = {r['id'] for r in empresas_disponibles}
+        elegida = req.session.get('empresa_actual')
+        if elegida not in permitidas and empresas_disponibles:
+            elegida = empresas_disponibles[0]['id']
+            req.session['empresa_actual'] = elegida
+        if elegida in permitidas:
+            empresa_actual = elegida
+            empresa_nombre = next(x['name'] for x in empresas_disponibles if x['id']==elegida)
+    return templates.TemplateResponse(req,tpl,{'u':u,'csrf':req.session.get('csrf',''),
+        'empresas_disponibles':empresas_disponibles,'empresa_actual':empresa_actual,
+        'empresa_nombre':empresa_nombre,**data})
 def go(path): return RedirectResponse(path,status_code=303)
 def val_int(s):
     try: return int(s)
@@ -180,83 +202,80 @@ def login(req:Request,email:str=Form(...),password:str=Form(...),csrf_token:str=
 @app.post('/logout')
 def logout(req:Request,csrf_token:str=Form(...)):
     csrf(req,csrf_token);req.session.clear();return go('/login')
+# MEDIGRAY_EMPRESA_SELECTOR_V1
+@app.post('/seleccionar-empresa')
+def seleccionar_empresa(req:Request, csrf_token:str=Form(...),company_id:int=Form(...)):
+    u=require(req)
+    csrf(req,csrf_token)
+    company_access(u,company_id)
+    req.session['empresa_actual']=company_id
+    return go('/')
+
 @app.get('/',response_class=HTMLResponse)
 def home(req:Request,q:str='',country:int=0):
-    require(req)
+    u=require(req)
+    permitidas=company_ids(u)
+    actual=req.session.get('empresa_actual')
+    if actual not in permitidas:
+        actual=permitidas[0] if permitidas else 0
+        req.session['empresa_actual']=actual
     with conn() as c:
-        arts=c.execute('''SELECT a.*,co.name company,(SELECT COUNT(*) FROM versions v WHERE v.art_id=a.id) nversions FROM arts a JOIN companies co ON a.company_id=co.id WHERE a.company_id IN (SELECT company_id FROM user_companies WHERE user_id=?) AND (a.sap_code LIKE ? OR a.master_code LIKE ? OR a.product LIKE ?) ORDER BY a.id DESC LIMIT 200''',(require(req)['id'],f'%{q}%',f'%{q}%',f'%{q}%')).fetchall()
+        arts=c.execute('''SELECT a.*,co.name company,(SELECT COUNT(*) FROM versions v WHERE v.art_id=a.id) nversions
+            FROM arts a JOIN companies co ON a.company_id=co.id
+            WHERE a.company_id=? AND (a.sap_code LIKE ? OR a.master_code LIKE ? OR a.product LIKE ?)
+            ORDER BY a.id DESC LIMIT 200''',(actual,f'%{q}%',f'%{q}%',f'%{q}%')).fetchall()
         countries=c.execute('SELECT * FROM countries ORDER BY name').fetchall()
-        recent=c.execute('''SELECT ch.*,a.master_code FROM changes ch JOIN arts a ON a.id=ch.art_id WHERE a.company_id IN (SELECT company_id FROM user_companies WHERE user_id=?) ORDER BY ch.id DESC LIMIT 12''',(require(req)['id'],)).fetchall()
-        vlist=c.execute('''SELECT cv.*,v.art_id,v.revision,a.master_code,c.name country FROM country_versions cv JOIN versions v ON v.id=cv.version_id JOIN arts a ON a.id=v.art_id JOIN countries c ON c.id=cv.country_id WHERE a.company_id IN (SELECT company_id FROM user_companies WHERE user_id=?) AND (?=0 OR cv.country_id=?) ORDER BY cv.id DESC LIMIT 100''',(require(req)['id'],country,country)).fetchall()
+        recent=c.execute('''SELECT ch.*,a.master_code FROM changes ch JOIN arts a ON a.id=ch.art_id
+            WHERE a.company_id=? ORDER BY ch.id DESC LIMIT 12''',(actual,)).fetchall()
+        vlist=c.execute('''SELECT cv.*,v.art_id,v.revision,a.master_code,c.name country
+            FROM country_versions cv JOIN versions v ON v.id=cv.version_id
+            JOIN arts a ON a.id=v.art_id JOIN countries c ON c.id=cv.country_id
+            WHERE a.company_id=? AND (?=0 OR cv.country_id=?) ORDER BY cv.id DESC LIMIT 100''',
+            (actual,country,country)).fetchall()
     return view(req,'home.html',arts=arts,countries=countries,recent=recent,vlist=vlist,q=q,country=country)
-
-@app.get('/artes/vigentes', response_class=HTMLResponse)
-def artes_vigentes_pagina(req: Request, q: str = '', company: int = 0, country: int = 0):
-    u = require(req)
-    accessible = company_ids(u)
-    if company and company not in accessible:
-        raise HTTPException(403, 'Sin acceso a esta empresa')
-    with conn() as c:
-        companies = c.execute('SELECT id,name FROM companies WHERE id IN (SELECT company_id FROM user_companies WHERE user_id=?) ORDER BY name', (u['id'],)).fetchall()
-        countries = c.execute('SELECT id,name FROM countries ORDER BY name').fetchall()
-        items = c.execute("""SELECT a.id art_id, a.master_code, a.sap_code, a.product, a.packaging_type,
-                                    co.name company_name, p.name country_name, v.id version_id,
-                                    v.revision, cv.local_version, cv.status, cv.valid_from, cv.transition_until
-                             FROM country_versions cv
-                             JOIN versions v ON v.id=cv.version_id
-                             JOIN arts a ON a.id=v.art_id
-                             JOIN companies co ON co.id=a.company_id
-                             JOIN countries p ON p.id=cv.country_id
-                             WHERE a.company_id IN (SELECT company_id FROM user_companies WHERE user_id=?)
-                               AND (?=0 OR a.company_id=?) AND (?=0 OR cv.country_id=?)
-                               AND (a.sap_code LIKE ? OR a.master_code LIKE ? OR a.product LIKE ?)
-                               AND cv.status='Vigente Oficial'
-                               AND (cv.valid_from IS NULL OR cv.valid_from='' OR cv.valid_from<=date('now'))
-                             ORDER BY co.name, a.sap_code, p.name LIMIT 500""",
-                          (u['id'],company,company,country,country,*[f'%{q}%']*3)).fetchall()
-    return view(req, 'artes_vigentes.html', items=items, companies=companies, countries=countries, q=q, company=company, country=country)
-
-@app.get('/artes/historial', response_class=HTMLResponse)
-def historial_artes_pagina(req: Request, q: str = '', company: int = 0, country: int = 0):
-    u = require(req)
-    accessible = company_ids(u)
-    if company and company not in accessible:
-        raise HTTPException(403, 'Sin acceso a esta empresa')
-    with conn() as c:
-        companies = c.execute('SELECT id,name FROM companies WHERE id IN (SELECT company_id FROM user_companies WHERE user_id=?) ORDER BY name', (u['id'],)).fetchall()
-        countries = c.execute('SELECT id,name FROM countries ORDER BY name').fetchall()
-        items = c.execute("""SELECT a.id art_id, a.master_code, a.sap_code, a.product, co.name company_name,
-                                    v.id version_id, v.revision, v.created_at,
-                                    p.name country_name, cv.local_version, cv.status
-                             FROM versions v
-                             JOIN arts a ON a.id=v.art_id
-                             JOIN companies co ON co.id=a.company_id
-                             LEFT JOIN country_versions cv ON cv.version_id=v.id
-                             LEFT JOIN countries p ON p.id=cv.country_id
-                             WHERE a.company_id IN (SELECT company_id FROM user_companies WHERE user_id=?)
-                               AND (?=0 OR a.company_id=?) AND (?=0 OR cv.country_id=?)
-                               AND (a.sap_code LIKE ? OR a.master_code LIKE ? OR a.product LIKE ?)
-                             ORDER BY a.id DESC, v.id DESC LIMIT 500""",
-                          (u['id'],company,company,country,country,*[f'%{q}%']*3)).fetchall()
-    return view(req, 'historial_artes.html', items=items, companies=companies, countries=countries, q=q, company=company, country=country)
-
 @app.get('/artes/nuevo')
 def art_new(req:Request):
     require(req,'Administrador','Regulatorios')
     with conn() as c: cos=c.execute('SELECT * FROM companies WHERE id IN (SELECT company_id FROM user_companies WHERE user_id=?)',(require(req)['id'],)).fetchall()
     return view(req,'art_form.html',companies=cos)
+# MEDIGRAY_DOC_ARTE_V1: documento obligatorio al crear el arte maestro.
+# CONTROL_ARTES_SOLO_DRIVE_SEGURO_V2
 @app.post('/artes/nuevo')
-def art_create(req:Request,csrf_token:str=Form(...),master_code:str=Form(...),sap_code:str=Form(...),company_id:int=Form(...),product:str=Form(...),packaging_type:str=Form(...),description:str=Form('')):
-    u=require(req,'Administrador','Regulatorios');csrf(req,csrf_token)
+def art_create(req:Request, csrf_token:str=Form(...), master_code:str=Form(...),
+               sap_code:str=Form(...), company_id:int=Form(...),
+               product:str=Form(...), packaging_type:str=Form(...),
+               description:str=Form(''), drive_url:str=Form(...)):
+    from urllib.parse import urlparse, parse_qs
+    import re
+    u=require(req,'Administrador','Regulatorios')
+    csrf(req,csrf_token)
+    company_access(u,company_id)
     module_access(u,company_id,'artes')
-    if not all(x.strip() for x in [master_code,sap_code,product,packaging_type]): raise HTTPException(400,'Complete los campos obligatorios')
+    if not all(x.strip() for x in (master_code,sap_code,product,packaging_type)):
+        raise HTTPException(400,'Complete los campos obligatorios')
+    drive_url=drive_url.strip()
+    parsed=urlparse(drive_url)
+    host=(parsed.hostname or '').lower()
+    if parsed.scheme!='https' or host not in ('drive.google.com','docs.google.com'):
+        raise HTTPException(400,'Pegue un enlace HTTPS de Google Drive o Google Docs')
+    target = bool(re.search(r'/(file|document|spreadsheets|presentation)/d/[^/]+',parsed.path))
+    target = target or (host=='drive.google.com' and parsed.path=='/open' and bool(parse_qs(parsed.query).get('id')))
+    if not target:
+        raise HTTPException(400,'Pegue el enlace directo a un archivo de Drive, no a una carpeta')
     with conn() as c:
         try:
             cur=c.execute('INSERT INTO arts(master_code,sap_code,company_id,product,packaging_type,description,created_by,created_at) VALUES(?,?,?,?,?,?,?,?)',(master_code.strip(),sap_code.strip(),company_id,product.strip(),packaging_type.strip(),description.strip(),u['id'],utc()))
-        except sqlite3.IntegrityError: raise HTTPException(400,'Código maestro duplicado o empresa inexistente')
-        audit(c,u['id'],'CREAR','Arte',cur.lastrowid,new={'master_code':master_code,'sap_code':sap_code})
-        id=cur.lastrowid
-    return go(f'/artes/{id}')
+        except sqlite3.IntegrityError:
+            raise HTTPException(400,'Código maestro duplicado o empresa inexistente')
+        aid=cur.lastrowid
+        c.execute('INSERT INTO art_document_links(company_id,art_id,url,description,created_by,created_at) VALUES(?,?,?,?,?,?)',(company_id,aid,drive_url,'Documento inicial en Google Drive',u['id'],utc()))
+        audit(c,u['id'],'CREAR','Arte',aid,new={'master_code':master_code,'sap_code':sap_code,'document_mode':'drive'})
+    return go(f'/artes/{aid}')
+
+# CONTROL_ARTES_VIGENTES_DASHBOARD_V1
+from artes_vigentes_dashboard import register as _register_vigentes_dashboard
+_register_vigentes_dashboard(app, conn, require, view, company_ids, module_access)
+
 @app.get('/artes/{art_id}')
 def art_detail(req:Request,art_id:int):
     require(req)
@@ -271,7 +290,8 @@ def art_detail(req:Request,art_id:int):
         countries=c.execute('SELECT * FROM countries ORDER BY name').fetchall()
         suppliers=c.execute('''SELECT s.*,u.email FROM suppliers s JOIN users u ON u.id=s.actor_id WHERE s.country_version_id IN (SELECT cv.id FROM country_versions cv JOIN versions v ON v.id=cv.version_id WHERE v.art_id=?) ORDER BY s.id DESC LIMIT 30''',(art_id,)).fetchall()
         attachments=c.execute('SELECT * FROM attachments WHERE art_id=? ORDER BY id DESC',(art_id,)).fetchall()
-    return view(req,'art_detail.html',art=art,vers=vers,cvers=cvers,changes=changes,countries=countries,suppliers=suppliers,status=VSTATUS,attachments=attachments)
+        document_links=c.execute('SELECT * FROM art_document_links WHERE art_id=? AND company_id=? ORDER BY id DESC',(art_id,cid)).fetchall()
+    return view(req,'art_detail.html',art=art,vers=vers,cvers=cvers,changes=changes,countries=countries,suppliers=suppliers,status=VSTATUS,attachments=attachments,document_links=document_links)
 @app.post('/artes/{art_id}/version')
 async def add_version(req:Request,art_id:int,csrf_token:str=Form(...),revision:str=Form(...),change_id:str=Form(''),pdf:UploadFile=File(...)):
     u=require(req,'Administrador','Regulatorios');csrf(req,csrf_token)
@@ -660,6 +680,22 @@ def bootstrap():
         for row in c.execute('SELECT id FROM companies').fetchall(): c.execute('INSERT INTO user_companies(user_id,company_id) VALUES(?,?)',(cur.lastrowid,row['id']))
         audit(c,cur.lastrowid,'BOOTSTRAP','Usuario',cur.lastrowid)
     print('Administrador creado. Ejecute: uvicorn app:app --reload')
+from medigray_bloque2 import register as medigray_bloque2_register
+medigray_bloque2_register(sys.modules[__name__])
+
+from medigray_bloque3 import register as medigray_bloque3_register
+medigray_bloque3_register(sys.modules[__name__])
+
+from medigray_bloque4 import register as medigray_bloque4_register
+medigray_bloque4_register(sys.modules[__name__])
+
+from medigray_final import register as medigray_final_register
+medigray_final_register(sys.modules[__name__])
+
+# CONTROL_ARTES_HOMOLOGACION_V1
+from homologacion_region import montar_homologacion
+montar_homologacion(app, conn, require, csrf, view, go, company_access, audit, utc)
+
 if __name__=='__main__':
     if len(sys.argv)>1 and sys.argv[1]=='crear-admin': bootstrap()
     elif len(sys.argv)>1 and sys.argv[1]=='cambiar-clave-admin': reset_admin()

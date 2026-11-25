@@ -1,0 +1,13 @@
+{% extends 'base.html' %}{% block content %}
+<h1>Activación de versiones por país</h1>
+<p class="muted">Se requiere una solicitud aprobada, PDF y aprobación documental previamente registrada. Esta acción se aplica inmediatamente y conserva el historial.</p>
+<section class="panel scroll"><table><thead><tr><th>Empresa / SAP</th><th>País</th><th>Revisión</th><th>Estado</th><th>Solicitud</th><th>Activación</th></tr></thead><tbody>
+{% for r in items %}<tr><td>{{r.empresa}}<br><strong>{{r.sap_code}}</strong> · {{r.product}}</td><td>{{r.pais}}</td><td>{{r.local_version}} / {{r.revision}}</td><td><span class="badge">{{r.status}}</span></td><td>{{r.estado_cambio or 'Sin solicitud' }}</td><td>
+{% if can_edit and r.status=='Aprobado sin vigencia' and r.estado_cambio=='Aprobada' %}
+<form method="post" action="/activacion-versiones/{{r.cv_id}}" onsubmit="return confirm('¿Confirmar activación inmediata y sustitución de versión para este país? Esta operación afectará la vigencia oficial.')">
+<input type="hidden" name="csrf_token" value="{{csrf}}"><label>Fecha de hoy (AAAA-MM-DD)</label><input type="date" name="fecha" required>
+<label>Versión anterior</label><select name="anterior"><option value="Obsoleta">Obsoleta</option><option value="Transitoria">Transitoria autorizada</option></select>
+<label>Fin de transición (solo si aplica)</label><input type="date" name="fin_transicion"><label>Observaciones</label><input type="text" name="nota" maxlength="250"><button class="btn sm">Activar versión</button>
+</form>
+{% else %}<small>Sin acción disponible</small>{% endif %}</td></tr>{% else %}<tr><td colspan="6">No hay versiones registradas.</td></tr>{% endfor %}
+</tbody></table></section>{% endblock %}

@@ -1,0 +1,54 @@
+{% extends 'base.html' %}
+{% block content %}
+<div class="ui-breadcrumb"><a href="/">Inicio</a> / <a href="/homologacion">Homologación regional</a> / {{art.master_code}}</div>
+<section class="hero-lite">
+  <div class="section-eyebrow">Producto · {{art.sap_code}}</div>
+  <h1>{{art.product}}</h1>
+  <p class="muted">Arte: <strong>{{art.master_code}}</strong> · Tipo: {{art.packaging_type}} · Comparación de países. Los cambios aquí no alteran el estado regulatorio de las versiones.</p>
+  <a href="/artes/{{art.id}}">Abrir ficha del arte →</a>
+</section>
+{% if grupos %}
+<div class="panel"><h2>Diseños compartidos registrados</h2>
+{% for codigo, nombres in grupos.items() %}
+  <p><span class="badge ok">{{codigo}}</span> <strong>{{nombres|join(', ')}}</strong></p>
+{% endfor %}
+<p class="muted">La agrupación depende de la clasificación registrada; debe confirmarse con las evidencias de los archivos finales.</p></div>
+{% endif %}
+<div class="panel"><h2>Matriz por país</h2>
+<div class="scroll"><table>
+<thead><tr><th>País</th><th>Versión principal</th><th>Transitorios</th><th>Diseño</th><th>Homologación</th><th>Motivo / Acción</th></tr></thead>
+<tbody>
+{% for p in paises %}
+<tr id="pais-{{p.country_id}}">
+ <td><strong>{{p.country_name}}</strong></td>
+ <td>{% if p.version_principal %}{{p.version_principal}}{% else %}<span class="muted">Sin principal registrada</span>{% endif %}</td>
+ <td>{% if p.n_transitorios %}<span class="badge warn">{{p.n_transitorios}} en transición</span>{% else %}—{% endif %}</td>
+ <td><span class="code">{{p.design_code or 'Sin definir'}}</span></td>
+ <td>{% if p.estado=='Homologado' %}<span class="badge ok">Homologado</span>
+ {% elif p.estado=='Diferente' %}<span class="badge warn">Diferente</span>
+ {% else %}<span class="badge">Pendiente</span>{% endif %}</td>
+ <td>{{p.motivo or 'Sin motivo registrado'}}{% if p.evidencia_url %}<div><a target="_blank" rel="noopener noreferrer" href="{{p.evidencia_url}}">Ver evidencia</a></div>{% endif %}</td>
+</tr>
+{% endfor %}
+</tbody></table></div></div>
+{% if puede_editar %}
+<div class="panel">
+<h2>Registrar o actualizar clasificación</h2>
+<p class="muted">Seleccione un país y documente el diseño y sus diferencias. Puede actualizar cada registro sin borrar su rastro de auditoría.</p>
+<form method="post" action="/homologacion/{{art.id}}/guardar">
+  <input type="hidden" name="csrf_token" value="{{csrf}}">
+  <div class="ui-form-grid">
+    <div><label>País *</label><select name="country_id" required>{% for p in paises %}<option value="{{p.country_id}}">{{p.country_name}}</option>{% endfor %}</select></div>
+    <div><label>Código de diseño compartido</label><input maxlength="100" name="design_code" placeholder="Ej. REG-0101-A-v03"></div>
+    <div><label>Clasificación *</label><select name="estado"><option>Homologado</option><option>Diferente</option><option selected>Pendiente</option></select></div>
+    <div><label>Tipo de diferencia</label><select name="tipo_diferencia">{% for t in causas %}<option>{{t}}</option>{% endfor %}</select></div>
+    <div class="full"><label>Motivo de diferencia / observación</label><textarea maxlength="2000" name="motivo" placeholder="Describa la leyenda, texto o requisito específico..."></textarea></div>
+    <div><label>Posibilidad de unificación</label><select name="posibilidad_unificacion"><option>Por evaluar</option><option>Posible</option><option>No posible actualmente</option><option>En trámite</option></select></div>
+    <div><label>Responsable</label><input name="responsable" maxlength="120" placeholder="Área o responsable"></div>
+    <div class="full"><label>Enlace HTTPS de evidencia</label><input name="evidencia_url" type="url" maxlength="1500" placeholder="https://drive.google.com/..."></div>
+  </div>
+  <button class="btn" type="submit">Guardar clasificación</button>
+</form></div>
+{% else %}<div class="notice">Tiene acceso de consulta. Solo Administrador y Regulatorios pueden modificar las clasificaciones.</div>{% endif %}
+<div class="notice">Las aprobaciones, fechas de vigencia y condiciones de agotamiento se siguen gestionando en las versiones por país. Esta ficha únicamente compara y documenta diseños.</div>
+{% endblock %}

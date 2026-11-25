@@ -1,0 +1,9 @@
+# Agregar a .gitignore en Medigray
+storage/
+storage_respaldo*/
+respaldos/
+respaldo_bloque2_*/
+*.sqlite3
+*.db
+*.json.key
+*service-account*.json

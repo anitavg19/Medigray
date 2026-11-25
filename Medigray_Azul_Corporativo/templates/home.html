@@ -1,0 +1,69 @@
+{% extends 'base.html' %}
+{% block content %}
+<section class="welcome-hero" aria-labelledby="welcome-title">
+  <div class="eyebrow">Medigray · Inversiones Oridama</div>
+  <h1 id="welcome-title">Todo el control de artes, en un solo lugar.</h1>
+  <p>Encuentre el arte vigente, consulte su historial o inicie un control de cambios sin recorrer múltiples pantallas.</p>
+  <form class="home-search" method="get" action="/">
+    <div class="field">
+      <label for="quick-search">Buscar por código SAP, arte o producto</label>
+      <input id="quick-search" type="search" name="q" value="{{q or ''}}" placeholder="Ej. 10004567 o nombre del producto">
+    </div>
+    <button class="btn" type="submit">Buscar arte</button>
+  </form>
+</section>
+
+<div class="section-heading"><div><h2>¿Qué necesita hacer?</h2><p class="muted">Accesos directos a las tareas más utilizadas.</p></div></div>
+<section class="action-grid" aria-label="Accesos rápidos">
+  <a class="action-card" href="/artes/vigentes"><span class="action-icon">✓</span><strong>Artes vigentes</strong><p>Consulte la versión autorizada por país y su documento en Drive.</p><span class="action-arrow">Abrir →</span></a>
+  <a class="action-card" href="/solicitudes"><span class="action-icon">▤</span><strong>Controles de cambios</strong><p>Revise solicitudes, estados, observaciones y aprobaciones.</p><span class="action-arrow">Abrir →</span></a>
+  <a class="action-card" href="/artes/historial"><span class="action-icon">◷</span><strong>Historial de artes</strong><p>Consulte revisiones anteriores y rastree los cambios realizados.</p><span class="action-arrow">Abrir →</span></a>
+  {% if u.role in ['Administrador','Regulatorios'] %}
+  <a class="action-card" href="/artes/nuevo"><span class="action-icon">＋</span><strong>Registrar un arte</strong><p>Cree un arte maestro y vincule su documento inicial de Drive.</p><span class="action-arrow">Abrir →</span></a>
+  {% endif %}
+</section>
+
+<div class="section-heading"><div><h2>Consulta rápida</h2><p class="muted">Resultados del buscador y actividad reciente.</p></div></div>
+<section class="panel">
+  <div class="flex" style="justify-content:space-between;margin-bottom:13px"><h3 style="margin:0">Artes encontrados</h3><a class="link-small" href="/artes/vigentes">Ver artes vigentes →</a></div>
+  <div class="scroll"><table><thead><tr><th>Arte</th><th>SAP</th><th>Producto</th><th>Tipo</th><th>Revisiones</th></tr></thead><tbody>
+  {% for a in arts %}<tr><td><a href="/artes/{{a.id}}"><strong>{{a.master_code}}</strong></a></td><td class="code">{{a.sap_code}}</td><td>{{a.product}}</td><td>{{a.packaging_type}}</td><td>{{a.nversions}}</td></tr>
+  {% else %}<tr><td colspan="5">No se encontraron artes. Pruebe otro código o consulte el listado de vigentes.</td></tr>{% endfor %}
+  </tbody></table></div>
+</section>
+
+<div class="grid">
+  <section class="panel"><div class="flex" style="justify-content:space-between"><h3 style="margin:0">Solicitudes recientes</h3><a class="link-small" href="/solicitudes">Ver todas →</a></div>
+    <div class="scroll"><table><thead><tr><th>Solicitud</th><th>Estado</th></tr></thead><tbody>
+      {% for c in recent %}<tr><td><a href="/cambios/{{c.id}}">CC-{{'%05d'|format(c.id)}} · {{c.title}}</a></td><td><span class="badge">{{c.status}}</span></td></tr>
+      {% else %}<tr><td colspan="2">No hay solicitudes recientes.</td></tr>{% endfor %}
+    </tbody></table></div>
+  </section>
+  <section class="panel"><div class="flex" style="justify-content:space-between"><h3 style="margin:0">Vigencias por país</h3><a class="link-small" href="/artes/vigentes">Explorar →</a></div>
+    <form method="get" action="/"><label for="quick-country" style="margin-top:12px">País</label><select id="quick-country" name="country" onchange="this.form.submit()"><option value="0">Todos</option>{% for c in countries %}<option value="{{c.id}}" {% if country==c.id %}selected{% endif %}>{{c.name}}</option>{% endfor %}</select></form>
+    <div class="scroll"><table><thead><tr><th>Arte / País</th><th>Versión</th><th>Estado</th></tr></thead><tbody>
+      {% for v in vlist %}<tr><td><a href="/artes/{{v.art_id}}">{{v.master_code}}</a><div class="muted">{{v.country}}</div></td><td>{{v.local_version}}</td><td><span class="badge {% if v.status=='Vigente Oficial' %}ok{% elif v.status=='Inactivo/Obsoleto' %}red{% else %}warn{% endif %}">{{v.status}}</span></td></tr>
+      {% else %}<tr><td colspan="3">Sin versiones registradas para este país.</td></tr>{% endfor %}
+    </tbody></table></div>
+  </section>
+</div>
+
+<div class="section-heading" id="herramientas"><div><h2>Herramientas adicionales</h2><p class="muted">Las opciones menos frecuentes están aquí para mantener el menú despejado.</p></div></div>
+<details class="secondary-tools">
+  <summary>Ver todas las herramientas</summary>
+  <div class="action-grid">
+    <a class="action-card" href="/biblioteca-documental"><span class="action-icon">▧</span><strong>Biblioteca documental</strong><p>Busque archivos y documentos asociados a las versiones.</p><span class="action-arrow">Abrir →</span></a>
+    <a class="action-card" href="/alertas"><span class="action-icon">♧</span><strong>Alertas y pendientes</strong><p>Consulte vencimientos y tareas de seguimiento.</p><span class="action-arrow">Abrir →</span></a>
+    {% if u.role in ['Administrador','Regulatorios','Compras'] %}
+    <a class="action-card" href="/proveedores-control"><span class="action-icon">▥</span><strong>Proveedores</strong><p>Controle la versión recibida y utilizada por proveedor.</p><span class="action-arrow">Abrir →</span></a>
+    <a class="action-card" href="/compras"><span class="action-icon">◈</span><strong>Compras</strong><p>Compruebe las versiones permitidas para órdenes de compra.</p><span class="action-arrow">Abrir →</span></a>
+    {% endif %}
+    {% if u.role in ['Administrador','Regulatorios'] %}<a class="action-card" href="/activacion-versiones"><span class="action-icon">↻</span><strong>Activar versiones</strong><p>Gestione la entrada en vigencia por país.</p><span class="action-arrow">Abrir →</span></a>{% endif %}
+    {% if u.role == 'Administrador' %}
+    <a class="action-card" href="/catalogos"><span class="action-icon">◫</span><strong>Catálogos</strong><p>Productos y proveedores del sistema.</p><span class="action-arrow">Abrir →</span></a>
+    <a class="action-card" href="/configuracion"><span class="action-icon">⚙</span><strong>Configuración</strong><p>Campos, módulos y almacenamiento en Drive.</p><span class="action-arrow">Abrir →</span></a>
+    <a class="action-card" href="/usuarios"><span class="action-icon">♙</span><strong>Usuarios</strong><p>Administración de cuentas y accesos.</p><span class="action-arrow">Abrir →</span></a>
+    {% endif %}
+  </div>
+</details>
+{% endblock %}

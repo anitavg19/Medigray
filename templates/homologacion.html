@@ -1,0 +1,32 @@
+{% extends 'base.html' %}
+{% block content %}
+<div class="ui-breadcrumb"><a href="/">Inicio</a> / Homologación regional</div>
+<section class="hero-lite">
+  <div class="section-eyebrow">Control de artes · Seguimiento multipaís</div>
+  <h1>Homologación regional</h1>
+  <p class="muted">Identifique qué países comparten el mismo diseño y cuáles tienen variantes regulatorias, comerciales o técnicas. La homologación no equivale a aprobación sanitaria.</p>
+</section>
+<div class="panel">
+  <form class="ui-filter" method="get" action="/homologacion">
+    <div class="field"><label for="q">Buscar producto, código SAP o arte</label><input id="q" name="q" value="{{q}}" placeholder="Buscar..."></div>
+    <button class="btn" type="submit">Buscar</button>
+  </form>
+</div>
+<div class="panel">
+  <h2>Productos y artes</h2>
+  <div class="scroll"><table>
+    <thead><tr><th>Producto</th><th>SAP / Arte</th><th>Países evaluados</th><th>Homologados</th><th>Diferentes</th><th>Por evaluar</th><th>Acción</th></tr></thead>
+    <tbody>
+    {% for x in lista %}
+    <tr><td><strong>{{x.product}}</strong><div class="muted">{{x.packaging_type}}</div></td>
+        <td><span class="code">{{x.sap_code}}</span><div class="muted">{{x.master_code}}</div></td>
+        <td>{{x.paises_evaluados}}</td><td><span class="badge ok">{{x.homologados or 0}}</span></td>
+        <td><span class="badge {% if x.diferentes %}warn{% endif %}">{{x.diferentes or 0}}</span></td>
+        <td>{{x.pendientes or 0}}</td>
+        <td><a class="btn sm" href="/homologacion/{{x.id}}">Ver países</a></td></tr>
+    {% else %}<tr><td colspan="7" class="ui-empty">No hay artes en la empresa seleccionada o no coinciden con la búsqueda.</td></tr>{% endfor %}
+    </tbody>
+  </table></div>
+</div>
+<div class="notice">Los países sin clasificación no se cuentan como homologados. La comparación debe ser validada por Regulatorios antes de considerarse confirmada.</div>
+{% endblock %}
