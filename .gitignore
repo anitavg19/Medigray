@@ -3,3 +3,19 @@ __pycache__/
 *.pyc
 storage/*
 !storage/.gitkeep
+
+# Datos privados y archivos temporales
+storage/
+storage_respaldo*/
+respaldos/
+respaldo_*/
+archivo_depuracion/
+.env
+.env.*
+*.sqlite3
+*.session-secret
+*.zip
+*.tar.gz
+__pycache__/
+.venv/
+.vscode/

@@ -126,7 +126,7 @@
 
  <p class="nav-note">Consulte el historial, proveedores, compras y administración desde <strong>Más herramientas</strong> en Inicio.</p>
 
- <div class="sidebar-footer">Control de cambios de artes<br>{{ empresa_nombre }}</div>
+ <div class="sidebar-footer">Control de Cambios de Arte<br>{{ empresa_nombre }}</div>
 
 </aside>
 
@@ -134,9 +134,9 @@
 
 <header class="top">
 
- <div><div class="top-title">Control de artes de empaque</div><div class="top-sub">{{ empresa_nombre }} · Consulta · Vigencias · Cambios</div></div>
+ <div><div class="top-title">Control de Artes</div><div class="top-sub">{{ empresa_nombre }} · Consulta · Vigencias · Cambios</div></div>
 
- <div class="top-actions">
+ <div classempaque="top-actions">
 
   <div class="profile"><div class="avatar" aria-hidden="true">◈</div><div class="user">{{u.email}}<br>{{u.role}}</div></div>
 
@@ -162,4 +162,44 @@
 
 </script>
 
+
+<!-- MEDIGRAY_CAMPOS_EXISTENTES_V3_UI -->
+<script>
+(async function () {
+  const path=window.location.pathname;
+  let url=null, formKey=null;
+  if (path==='/artes/nuevo') {formKey='arte';}
+  else {const match=path.match(/^\/artes\/(\d+)\/cambios\/nuevo$/);
+    if(match){formKey='solicitud';url='/ui/campos-existentes?form_key=solicitud&art_id='+match[1];}}
+  if(!formKey)return;
+  async function apply() {
+    let target=url;
+    if(formKey==='arte'){
+      const company=document.querySelector('form select[name="company_id"]');
+      if(!company)return;
+      target='/ui/campos-existentes?form_key=arte&company_id='+encodeURIComponent(company.value);
+    }
+    const response=await fetch(target,{credentials:'same-origin',cache:'no-store'});
+    if(!response.ok)return;
+    const data=await response.json();
+    for(const cfg of data.fields){
+      const input=Array.from(document.querySelectorAll('main form [name]')).find(el=>el.name===cfg.name);
+      if(!input)continue;
+      const parent=input.parentElement;
+      // El label puede ser hermano directo, o estar dentro del contenedor.
+      let lab=parent?.querySelector('label');
+      if(!lab)lab=input.previousElementSibling?.tagName==='LABEL'?input.previousElementSibling:null;
+      if(!lab && parent)lab=parent.previousElementSibling?.tagName==='LABEL'?parent.previousElementSibling:null;
+      if(lab)lab.textContent=cfg.label+(cfg.protected?' *':'');
+      if(!cfg.protected){
+        if(parent && parent.querySelector('label')) parent.style.display=cfg.active?'':'none';
+        else {input.style.display=cfg.active?'':'none';if(lab)lab.style.display=cfg.active?'':'none';}
+      }
+    }
+  }
+  try{await apply();}catch(e){console.warn('No se pudo cargar la configuración visual de campos');}
+  const sel=document.querySelector('main form select[name="company_id"]');
+  if(formKey==='arte'&&sel)sel.addEventListener('change',()=>{apply().catch(()=>{});});
+})();
+</script>
 </body></html>

@@ -237,11 +237,13 @@ def home(req:Request,q:str='',country:int=0):
 def art_new(req:Request):
     require(req,'Administrador','Regulatorios')
     with conn() as c: cos=c.execute('SELECT * FROM companies WHERE id IN (SELECT company_id FROM user_companies WHERE user_id=?)',(require(req)['id'],)).fetchall()
-    return view(req,'art_form.html',companies=cos)
+    with conn() as c: adicionales=[dict(x) for x in c.execute("SELECT * FROM form_fields WHERE company_id=? AND form_key='arte' AND active=1 ORDER BY sort_order,id",(req.session.get('empresa_actual') or (cos[0]['id'] if cos else 0),)).fetchall()]
+    for f in adicionales: f['choices']=json.loads(f['choices_json'] or '[]')
+    return view(req,'art_form.html',companies=cos,campos_arte=adicionales)
 # MEDIGRAY_DOC_ARTE_V1: documento obligatorio al crear el arte maestro.
 # CONTROL_ARTES_SOLO_DRIVE_SEGURO_V2
 @app.post('/artes/nuevo')
-def art_create(req:Request, csrf_token:str=Form(...), master_code:str=Form(...),
+async def art_create(req:Request, csrf_token:str=Form(...), master_code:str=Form(...),
                sap_code:str=Form(...), company_id:int=Form(...),
                product:str=Form(...), packaging_type:str=Form(...),
                description:str=Form(''), drive_url:str=Form(...)):
@@ -268,12 +270,13 @@ def art_create(req:Request, csrf_token:str=Form(...), master_code:str=Form(...),
         except sqlite3.IntegrityError:
             raise HTTPException(400,'Código maestro duplicado o empresa inexistente')
         aid=cur.lastrowid
+        guardar_campos_arte(c, aid, company_id, await req.form())
         c.execute('INSERT INTO art_document_links(company_id,art_id,url,description,created_by,created_at) VALUES(?,?,?,?,?,?)',(company_id,aid,drive_url,'Documento inicial en Google Drive',u['id'],utc()))
         audit(c,u['id'],'CREAR','Arte',aid,new={'master_code':master_code,'sap_code':sap_code,'document_mode':'drive'})
     return go(f'/artes/{aid}')
 
 # CONTROL_ARTES_VIGENTES_DASHBOARD_V1
-from artes_vigentes_dashboard import register as _register_vigentes_dashboard
+from modulos.artes_vigentes import register as _register_vigentes_dashboard
 _register_vigentes_dashboard(app, conn, require, view, company_ids, module_access)
 
 @app.get('/artes/{art_id}')
@@ -680,21 +683,36 @@ def bootstrap():
         for row in c.execute('SELECT id FROM companies').fetchall(): c.execute('INSERT INTO user_companies(user_id,company_id) VALUES(?,?)',(cur.lastrowid,row['id']))
         audit(c,cur.lastrowid,'BOOTSTRAP','Usuario',cur.lastrowid)
     print('Administrador creado. Ejecute: uvicorn app:app --reload')
-from medigray_bloque2 import register as medigray_bloque2_register
+from modulos.solicitudes_compras import register as medigray_bloque2_register
 medigray_bloque2_register(sys.modules[__name__])
 
-from medigray_bloque3 import register as medigray_bloque3_register
+from modulos.activacion_versiones import register as medigray_bloque3_register
 medigray_bloque3_register(sys.modules[__name__])
 
-from medigray_bloque4 import register as medigray_bloque4_register
+from modulos.biblioteca_documental import register as medigray_bloque4_register
 medigray_bloque4_register(sys.modules[__name__])
 
-from medigray_final import register as medigray_final_register
+from modulos.administracion import register as medigray_final_register
 medigray_final_register(sys.modules[__name__])
 
 # CONTROL_ARTES_HOMOLOGACION_V1
-from homologacion_region import montar_homologacion
+from modulos.homologacion_regional import montar_homologacion
 montar_homologacion(app, conn, require, csrf, view, go, company_access, audit, utc)
+
+
+# MEDIGRAY_EDITOR_FORMULARIOS_V1
+from modulos.editor_solicitudes import register as registrar_disenador
+registrar_disenador(app, conn, require, csrf, view, audit, utc, company_ids, company_access)
+
+
+# MEDIGRAY_FORMULARIOS_GENERALES_V2
+from modulos.formularios_configurables import registrar as _registrar_formularios_v2, guardar_campos_arte
+_registrar_formularios_v2(app,conn,require,csrf,view,audit,utc,company_ids,company_access)
+
+
+# MEDIGRAY_CAMPOS_EXISTENTES_V3
+from modulos.campos_originales import registrar as _registrar_campos_existentes
+_registrar_campos_existentes(app,templates,conn,require,csrf,company_access,art_access,audit)
 
 if __name__=='__main__':
     if len(sys.argv)>1 and sys.argv[1]=='crear-admin': bootstrap()

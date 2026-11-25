@@ -1,0 +1,62 @@
+{% extends 'base.html' %}
+{% block content %}
+<section class="hero-lite">
+  <div class="section-eyebrow">ADMINISTRACIÓN · MEDIGRAY</div>
+  <h1>Diseñador de formularios</h1>
+  <p class="ui-page-lead">Agregue, cambie el orden u oculte preguntas sin editar archivos Python. Se conservan las respuestas anteriores.</p>
+</section>
+<section class="panel">
+  <form method="get" action="/admin/formularios">
+    <label for="empresa_editor">Empresa</label>
+    <select id="empresa_editor" name="company_id" onchange="this.form.submit()">
+    {% for co in companies %}<option value="{{co.id}}" {% if co.id == cid %}selected{% endif %}>{{co.name}}</option>{% endfor %}
+    </select>
+  </form>
+  <div class="badge ok">Formulario activo: Solicitudes de control de cambios</div>
+  <p class="muted">Los campos centrales como producto, título, motivo y tipo de aprobación se conservan para proteger el proceso. Aquí se administran las preguntas adicionales.</p>
+</section>
+<div class="grid" style="grid-template-columns:minmax(0,1.7fr) minmax(280px,1fr);align-items:start">
+ <section class="panel">
+  <h2>Preguntas configuradas</h2>
+  {% for f in fields %}
+   <details class="ui-add" {% if not f.active %}style="opacity:.8"{% endif %}>
+    <summary>{{ loop.index }}. {{f.label}} <span class="badge {{'ok' if f.active else 'warn'}}">{{'Visible' if f.active else 'Oculto'}}</span></summary>
+    <div class="ui-add-body">
+      <p class="muted">Tipo: {{ f.field_type }} · Respuestas históricas: {{f.respuestas}}</p>
+      <div class="flex" style="margin-bottom:12px">
+        <form method="post" action="/admin/formularios/campo/{{f.id}}/orden" style="margin:0"><input type="hidden" name="csrf_token" value="{{csrf}}"><input type="hidden" name="direction" value="up"><button class="btn gray sm" type="submit" {% if loop.first %}disabled{% endif %}>↑ Subir</button></form>
+        <form method="post" action="/admin/formularios/campo/{{f.id}}/orden" style="margin:0"><input type="hidden" name="csrf_token" value="{{csrf}}"><input type="hidden" name="direction" value="down"><button class="btn gray sm" type="submit" {% if loop.last %}disabled{% endif %}>↓ Bajar</button></form>
+      </div>
+      <form method="post" action="/admin/formularios/campo/{{f.id}}">
+        <input type="hidden" name="csrf_token" value="{{csrf}}">
+        <label>Nombre de la pregunta</label><input name="label" required maxlength="120" value="{{f.label}}">
+        <div class="ui-form-grid">
+          <div><label>Visible</label><select name="active"><option value="1" {% if f.active %}selected{% endif %}>Sí</option><option value="0" {% if not f.active %}selected{% endif %}>No</option></select></div>
+          <div><label>Obligatorio</label><select name="required"><option value="1" {% if f.required %}selected{% endif %}>Sí</option><option value="0" {% if not f.required %}selected{% endif %}>No</option></select></div>
+        </div>
+        {% if f.field_type == 'lista' %}<label>Opciones (una por línea)</label><textarea name="choices" required>{% for v in f.choices %}{{v}}{% if not loop.last %}&#10;{% endif %}{% endfor %}</textarea>{% endif %}
+        <button class="btn" type="submit">Guardar cambios</button>
+      </form>
+    </div>
+   </details>
+  {% else %}<p class="muted">Todavía no se han agregado preguntas adicionales.</p>{% endfor %}
+ </section>
+ <section class="panel">
+   <h2>Agregar una pregunta</h2>
+   <form method="post" action="/admin/formularios/nuevo">
+     <input type="hidden" name="csrf_token" value="{{csrf}}"><input type="hidden" name="company_id" value="{{cid}}">
+     <label>Nombre del campo</label><input required minlength="2" maxlength="120" name="label" placeholder="Ej. Registro sanitario">
+     <label>Tipo de respuesta</label><select name="field_type" id="tipo-nuevo">
+       {% for t in tipos %}<option value="{{t}}">{{t.replace('_',' ').capitalize()}}</option>{% endfor %}
+     </select>
+     <label>Opciones (solo para Lista; una por línea)</label><textarea name="choices" placeholder="Sí&#10;No&#10;No aplica"></textarea>
+     <label>Obligatorio</label><select name="required"><option value="0">No</option><option value="1">Sí</option></select>
+     <button class="btn" type="submit">+ Agregar campo</button>
+   </form>
+ </section>
+</div>
+<section class="panel"><h2>Cómo se aplican los cambios</h2>
+  <p>Las nuevas preguntas se muestran automáticamente en <strong>Nueva solicitud de control de cambios</strong>. Si desactiva un campo, deja de mostrarse, pero sus respuestas anteriores permanecen en el expediente.</p>
+  <p class="muted">Esta primera versión edita los campos adicionales de Solicitudes. Los campos centrales y los formularios de Artes, Productos y Proveedores se integrarán después de consolidar sus rutas actuales para no alterar los registros.</p>
+</section>
+{% endblock %}

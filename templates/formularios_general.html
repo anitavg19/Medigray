@@ -1,0 +1,54 @@
+{% extends 'base.html' %}{% block content %}
+<section class="hero-lite"><div class="section-eyebrow">Administración</div><h1>Diseñador de formularios</h1>
+<p class="ui-page-lead">Cree, oculte y ordene campos adicionales sin cambiar el código. Los campos obligatorios del sistema permanecen protegidos.</p></section>
+<section class="panel"><form method="get" action="/admin/formularios-general" class="ui-form-grid">
+<div><label>Empresa</label><select name="company_id">{% for co in empresas %}<option value="{{co.id}}" {% if co.id == cid %}selected{% endif %}>{{co.name}}</option>{% endfor %}</select></div>
+<div><label>Formulario</label><select name="form_key">{% for k,n in nombres.items() %}<option value="{{k}}" {% if k==form_key %}selected{% endif %}>{{n}}</option>{% endfor %}</select></div>
+<div class="full"><button class="btn" type="submit">Seleccionar formulario</button></div></form></section>
+
+<section class="panel">
+<h2>Campos que ya existen · {{ nombres[form_key] }}</h2>
+<p class="muted">Aquí aparecen también los campos originales. Puede cambiar el texto que ve el usuario. Los campos imprescindibles están protegidos para no dañar el sistema.</p>
+{% for f in ui_core_fields(form_key,cid) %}
+<details class="ui-add" style="margin-bottom:10px"><summary>{{f.label}} · {{'Esencial' if f.protected else 'Opcional'}}{% if not f.active %} · Oculto{% endif %}</summary>
+<div class="ui-add-body"><form method="post" action="/admin/formularios-general/campo-base">
+<input type="hidden" name="csrf_token" value="{{csrf}}">
+<input type="hidden" name="company_id" value="{{cid}}">
+<input type="hidden" name="form_key" value="{{form_key}}">
+<input type="hidden" name="field_name" value="{{f.name}}">
+<div class="ui-form-grid"><div><label>Nombre visible</label><input required maxlength="100" name="label" value="{{f.label}}"></div>
+<div><label>Mostrar en el formulario</label><select name="active" {% if f.protected %}disabled{% endif %}>
+<option value="1" {% if f.active %}selected{% endif %}>Sí</option>
+<option value="0" {% if not f.active %}selected{% endif %}>No</option></select>
+{% if f.protected %}<input type="hidden" name="active" value="1">{% endif %}</div></div>
+<button class="btn" type="submit">Guardar nombre y visibilidad</button></form>
+{% if f.protected %}<p class="muted">Campo estructural: no puede eliminarse ni dejar de ser obligatorio desde esta pantalla.</p>{% endif %}
+</div></details>
+{% endfor %}
+</section>
+<section class="panel"><h2>Campos adicionales · {{nombres[form_key]}}</h2>
+{% for f in campos %}
+<details class="ui-add" style="margin-bottom:12px"><summary>{{f.label}} · {{'Visible' if f.active else 'Oculto'}} · {{f.respuestas}} respuestas históricas</summary>
+<div class="ui-add-body">
+<form method="post" action="/admin/formularios-general/editar/{{f.id}}">
+<input type="hidden" name="csrf_token" value="{{csrf}}">
+<div class="ui-form-grid"><div><label>Nombre</label><input name="label" value="{{f.label}}" required maxlength="120"></div>
+<div><label>Tipo de campo (se mantiene para proteger las respuestas)</label><input value="{{f.field_type}}" disabled></div>
+<div><label>Mostrar campo</label><select name="active"><option value="1" {% if f.active %}selected{% endif %}>Sí</option><option value="0" {% if not f.active %}selected{% endif %}>No</option></select></div>
+<div><label>Obligatorio</label><select name="required"><option value="1" {% if f.required %}selected{% endif %}>Sí</option><option value="0" {% if not f.required %}selected{% endif %}>No</option></select></div>
+{% if f.field_type=='lista' %}<div class="full"><label>Opciones (una por línea)</label><textarea name="choices">{{f.options_text}}</textarea></div>{% endif %}
+</div><button class="btn">Guardar cambios</button></form>
+<div class="flex" style="margin-top:10px"><form method="post" action="/admin/formularios-general/orden/{{f.id}}"><input type="hidden" name="csrf_token" value="{{csrf}}"><input type="hidden" name="direction" value="up"><button class="btn gray sm">↑ Subir</button></form>
+<form method="post" action="/admin/formularios-general/orden/{{f.id}}"><input type="hidden" name="csrf_token" value="{{csrf}}"><input type="hidden" name="direction" value="down"><button class="btn gray sm">↓ Bajar</button></form></div>
+</div></details>
+{% else %}<p class="muted">No hay campos adicionales configurados para este formulario.</p>{% endfor %}
+</section>
+<section class="panel"><h2>+ Agregar campo</h2><form method="post" action="/admin/formularios-general/crear">
+<input type="hidden" name="csrf_token" value="{{csrf}}"><input type="hidden" name="company_id" value="{{cid}}"><input type="hidden" name="form_key" value="{{form_key}}">
+<div class="ui-form-grid"><div><label>Nombre</label><input name="label" required maxlength="120" placeholder="Ej. Fecha de revisión"></div>
+<div><label>Tipo</label><select name="field_type">{% for t in tipos %}<option value="{{t}}">{{t.replace('_',' ').title()}}</option>{% endfor %}</select></div>
+<div><label>¿Obligatorio?</label><select name="required"><option value="0">No</option><option value="1">Sí</option></select></div>
+<div class="full"><label>Opciones para listas (una por línea)</label><textarea name="choices" placeholder="Opción 1&#10;Opción 2"></textarea></div></div>
+<button class="btn">Agregar campo</button></form></section>
+<section class="notice">Los campos SAP, empresa, código maestro, producto y enlace de Drive se conservan como controles esenciales. Ocultar una pregunta adicional no borra las respuestas históricas ni los registros de arte.</section>
+{% endblock %}
