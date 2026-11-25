@@ -213,7 +213,8 @@ def seleccionar_empresa(req:Request, csrf_token:str=Form(...),company_id:int=For
 
 @app.get('/',response_class=HTMLResponse)
 def home(req:Request,q:str='',country:int=0):
-    u=require(req)
+    u=user(req)
+    if not u: return go('/login')
     permitidas=company_ids(u)
     actual=req.session.get('empresa_actual')
     if actual not in permitidas:
