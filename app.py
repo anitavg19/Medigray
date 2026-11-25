@@ -684,6 +684,20 @@ def bootstrap():
         for row in c.execute('SELECT id FROM companies').fetchall(): c.execute('INSERT INTO user_companies(user_id,company_id) VALUES(?,?)',(cur.lastrowid,row['id']))
         audit(c,cur.lastrowid,'BOOTSTRAP','Usuario',cur.lastrowid)
     print('Administrador creado. Ejecute: uvicorn app:app --reload')
+def auto_bootstrap():
+    email=os.getenv('MEDIGRAY_ADMIN_EMAIL','').strip().lower()
+    pw=os.getenv('MEDIGRAY_ADMIN_PASSWORD','')
+    if not email or not pw: return
+    if len(pw)<12 or '@' not in email:
+        print('MEDIGRAY_ADMIN: correo invalido o clave de menos de 12 caracteres'); return
+    with conn() as c:
+        if c.execute('SELECT COUNT(*) FROM users').fetchone()[0]: return
+        cur=c.execute('INSERT INTO users(email,password,role,created_at) VALUES(?,?,?,?)',(email,hash_pw(pw),'Administrador',utc()))
+        for row in c.execute('SELECT id FROM companies').fetchall(): c.execute('INSERT INTO user_companies(user_id,company_id) VALUES(?,?)',(cur.lastrowid,row['id']))
+        audit(c,cur.lastrowid,'BOOTSTRAP_ENV','Usuario',cur.lastrowid)
+    print('Administrador inicial creado')
+auto_bootstrap()
+
 from modulos.solicitudes_compras import register as medigray_bloque2_register
 medigray_bloque2_register(sys.modules[__name__])
 
