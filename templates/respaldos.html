@@ -1,0 +1,31 @@
+{% extends 'base.html' %}{% block content %}
+<style>.aviso{border-radius:14px;padding:14px 18px;margin-bottom:18px;font-weight:600}.rojo{background:#FDECEA;color:#8A1C12;border:1px solid #F5C2BC}.verde{background:#E8F5EC;color:#1A5E33;border:1px solid #BFE3CB}.barra{height:8px;background:#E5EDF5;border-radius:6px;overflow:hidden;margin-top:6px}.barra div{height:8px;background:#1768B0}</style>
+<h1>Respaldos</h1>
+{% if dias is none %}<div class="aviso rojo">Todavía no se ha descargado ningún respaldo completo. Descargue uno y guárdelo fuera de Railway (Drive o red de la empresa).</div>
+{% elif dias >= DIAS_AVISO %}<div class="aviso rojo">El último respaldo completo se descargó hace {{dias}} días ({{ultimo.fecha}}, {{ultimo.email}}). Descargue uno nuevo.</div>
+{% else %}<div class="aviso verde">Último respaldo completo descargado el {{ultimo.fecha}} por {{ultimo.email}}.</div>{% endif %}
+
+<div class="grid">
+<section class="panel"><h2>1. Respaldo completo (para guardar afuera)</h2>
+<p>Base de datos y todos los archivos subidos en un solo .zip. Es la protección si se pierde el disco o la cuenta de Railway.</p>
+<p class="muted">Recomendación: descargarlo cada semana y guardarlo en el Drive o la red de la empresa, con acceso restringido.</p>
+<a class="btn" href="/respaldos/completo">Descargar respaldo completo</a></section>
+
+<section class="panel"><h2>2. Respaldos diarios (dentro de Railway)</h2>
+<p>La página hace sola un respaldo de la base de datos cada día y guarda los últimos 14. Sirven para volver atrás si algo se borró o se cargó mal.</p>
+<form method="post" action="/respaldos/crear"><input type="hidden" name="csrf_token" value="{{csrf}}"><button class="btn">Hacer un respaldo ahora</button></form>
+<p class="muted" style="margin-top:12px">Espacio usado en el disco: {{espacio.usado}} de {{espacio.total}}</p><div class="barra"><div style="width:{{espacio.pct}}%"></div></div></section>
+</div>
+
+<section class="panel scroll"><h2>Respaldos guardados</h2><table><thead><tr><th>Fecha</th><th>Tipo</th><th>Tamaño</th><th>Descargar</th><th>Restaurar</th></tr></thead><tbody>
+{% for r in respaldos %}<tr><td>{{r.fecha}}</td><td>{{r.tipo}}</td><td>{{r.tamano}}</td><td><a href="/respaldos/descargar/{{r.nombre}}">Descargar</a></td>
+<td><form method="post" action="/respaldos/restaurar/{{r.nombre}}" class="flex" onsubmit="return confirm('Se reemplazará toda la información actual por la de este respaldo. Antes se guarda una copia del estado actual. ¿Continuar?')">
+<input type="hidden" name="csrf_token" value="{{csrf}}"><input name="confirmar" placeholder="Escriba RESTAURAR" required style="max-width:170px;margin:0"><button class="btn sm gray">Restaurar</button></form></td></tr>
+{% else %}<tr><td colspan="5">Todavía no hay respaldos. El primero automático se hace un minuto después de que arranca la página.</td></tr>{% endfor %}</tbody></table></section>
+
+<section class="panel"><h2>Restaurar desde un respaldo descargado</h2>
+<p>Suba un respaldo completo (o uno diario) que tenga guardado afuera. La información actual se reemplaza por la del respaldo; los archivos que falten se agregan y ninguno se borra. Antes de restaurar, la página guarda una copia del estado actual («antes de restaurar»). Al terminar, todos deben iniciar sesión de nuevo.</p>
+<form method="post" action="/respaldos/restaurar" enctype="multipart/form-data" onsubmit="return confirm('Se reemplazará toda la información actual por la del respaldo. ¿Continuar?')">
+<input type="hidden" name="csrf_token" value="{{csrf}}"><div class="grid"><div><label>Archivo .zip del respaldo</label><input type="file" name="archivo" accept=".zip" required></div>
+<div><label>Confirmación</label><input name="confirmar" placeholder="Escriba RESTAURAR" required></div></div><button class="btn gray">Restaurar</button></form></section>
+{% endblock %}

@@ -733,6 +733,10 @@ _registrar_campos_existentes(app,templates,conn,require,csrf,company_access,art_
 from modulos.usuarios_gestion import register as _registrar_usuarios_gestion
 _registrar_usuarios_gestion(sys.modules[__name__])
 
+# MEDIGRAY_RESPALDOS
+from modulos.respaldos import register as _registrar_respaldos
+_registrar_respaldos(sys.modules[__name__])
+
 if __name__=='__main__':
     if len(sys.argv)>1 and sys.argv[1]=='crear-admin': bootstrap()
     elif len(sys.argv)>1 and sys.argv[1]=='cambiar-clave-admin': reset_admin()
