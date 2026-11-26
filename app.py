@@ -733,3 +733,8 @@ if __name__=='__main__':
     if len(sys.argv)>1 and sys.argv[1]=='crear-admin': bootstrap()
     elif len(sys.argv)>1 and sys.argv[1]=='cambiar-clave-admin': reset_admin()
     else: print('Use: python app.py crear-admin | cambiar-clave-admin')
+
+
+# MEDIGRAY_HISTORIAL_ARTES
+from modulos.historial_artes import registrar as _registrar_historial
+_registrar_historial(app, conn, require, view, company_ids)
