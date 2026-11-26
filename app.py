@@ -607,7 +607,7 @@ def drive_service():
 
 @app.post('/adjuntos/subir')
 async def upload_attachment(req:Request,csrf_token:str=Form(...),art_id:int=Form(...),file:UploadFile=File(...)):
-    u=require(req,'Administrador','Regulatorios','Gestión de Calidad','Compras');csrf(req,csrf_token)
+    u=require(req,'Administrador','Regulatorios','Gestión de Calidad');csrf(req,csrf_token)
     cid=art_access(u,art_id);module_access(u,cid,'adjuntos')
     filename=Path(file.filename or '').name[:180]
     ext=Path(filename).suffix.lower()

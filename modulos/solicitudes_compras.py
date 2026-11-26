@@ -139,12 +139,12 @@ def register(m):
             docs=c.execute('''SELECT d.document_type,t.* FROM mg2_version_documents d
                              JOIN attachments t ON t.id=d.attachment_id
                              WHERE d.version_id=? ORDER BY d.id DESC''',(version_id,)).fetchall()
-        return m.view(req,'mg2_expediente.html',v=v,docs=docs,can_edit=u['role'] in ('Administrador','Regulatorios','Gestión de Calidad','Compras'))
+        return m.view(req,'mg2_expediente.html',v=v,docs=docs,can_edit=u['role'] in ('Administrador','Regulatorios','Gestión de Calidad'))
 
     @app.post('/expedientes/version/{version_id}/subir')
     async def mg2_subir(req:Request,version_id:int,csrf_token:str=Form(...),
                         document_type:str=Form(...),file:UploadFile=File(...)):
-        u=m.require(req,'Administrador','Regulatorios','Gestión de Calidad','Compras');m.csrf(req,csrf_token)
+        u=m.require(req,'Administrador','Regulatorios','Gestión de Calidad');m.csrf(req,csrf_token)
         cid=m.version_access(u,version_id);m.module_access(u,cid,'adjuntos')
         allowed_doc=('Arte final','Aprobación','Control de cambio','Prueba de impresión','Proveedor','Otro')
         if document_type not in allowed_doc: raise HTTPException(400,'Tipo de documento inválido')
