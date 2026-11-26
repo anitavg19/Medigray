@@ -737,6 +737,10 @@ _registrar_usuarios_gestion(sys.modules[__name__])
 from modulos.respaldos import register as _registrar_respaldos
 _registrar_respaldos(sys.modules[__name__])
 
+# MEDIGRAY_CONTROL_CAMBIOS_ARTE
+from modulos.control_cambios_arte import register as _registrar_cc_arte
+_registrar_cc_arte(sys.modules[__name__])
+
 if __name__=='__main__':
     if len(sys.argv)>1 and sys.argv[1]=='crear-admin': bootstrap()
     elif len(sys.argv)>1 and sys.argv[1]=='cambiar-clave-admin': reset_admin()

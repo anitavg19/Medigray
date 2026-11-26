@@ -1,0 +1,24 @@
+<!doctype html><html lang="es"><head><meta charset="utf-8"><title>{{f.numero}} · Revisión de prueba de impresión</title>
+{% include 'cc_print_estilos.html' %}</head><body>
+<div class="bar"><button onclick="window.print()">Imprimir / Guardar como PDF</button><button onclick="history.back()" style="background:#777">Volver</button></div>
+{% set titulo = 'REVISIÓN DE PRUEBA DE IMPRESIÓN' %}{% set codigo = 'XXX-001-F02' %}{% include 'cc_print_encabezado.html' %}
+{% set p1 = pruebas.get(1) %}{% set p2 = pruebas.get(2) %}
+<div class="sec">1. INFORMACIÓN GENERAL</div>
+<table><tr><td class="lbl">Empresa</td><td>{{art.company}}</td><td class="lbl">N.° de control de cambios</td><td>{{f.numero}}</td></tr>
+<tr><td class="lbl">Producto terminado</td><td colspan="3">{{art.product}}</td></tr>
+<tr><td class="lbl">Código de arte y versión</td><td>{{art.master_code}} · {{d.version_propuesta}}</td><td class="lbl">Fabricante / proveedor</td><td>{{p1.fabricante if p1 else ''}}</td></tr>
+<tr><td class="lbl">Tipo de arte</td><td colspan="3">{{ (d.material or [])|join(', ') }} {{d.material_otro}}</td></tr>
+<tr><td class="lbl">Países de destino</td><td colspan="3">{% for co in countries %}{% if paises.get(co.id) %}{{co.name}} {% endif %}{% endfor %}</td></tr></table>
+
+<div class="sec">2. LISTA DE CHEQUEO</div>
+<table><tr><th>Característica por revisar</th><th style="width:20%">{{RONDAS[1][0]}}</th><th style="width:20%">{{RONDAS[2][0]}}</th></tr>
+{% for item in CHECKLIST %}{% set k = loop.index|string %}<tr><td>{{loop.index}}. {{item}}</td><td class="c">{{p1.resp[k] if p1 else ''}}</td><td class="c">{{p2.resp[k] if p2 else ''}}</td></tr>{% endfor %}</table>
+
+<div class="sec">3. RESULTADO</div>
+<table><tr><th></th><th>{{RONDAS[1][0]}}</th><th>{{RONDAS[2][0]}}</th></tr>
+<tr><td class="lbl">Resultado</td><td>{{p1.resultado if p1 else ''}}</td><td>{{p2.resultado if p2 else ''}}</td></tr>
+<tr><td class="lbl">Usuario</td><td>{{p1.email if p1 else ''}}</td><td>{{p2.email if p2 else ''}}</td></tr>
+<tr><td class="lbl">Fecha</td><td>{{p1.fecha[:10] if p1 else ''}}</td><td>{{p2.fecha[:10] if p2 else ''}}</td></tr>
+<tr><td class="lbl">Observaciones</td><td>{{p1.observaciones if p1 else ''}}</td><td>{{p2.observaciones if p2 else ''}}</td></tr></table>
+<p class="muted">Si alguna respuesta es «No», la prueba se devuelve al fabricante con las observaciones. Sustituye al formulario F-P-GC-15.02 de Inversiones Oridama.</p>
+</body></html>

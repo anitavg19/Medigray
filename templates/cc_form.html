@@ -1,0 +1,74 @@
+{% extends 'base.html' %}{% block content %}
+<style>
+.cf table{width:100%;border-collapse:collapse;margin:0}.cf td,.cf th{border:1px solid #C9D3DF;padding:6px 8px;vertical-align:middle;text-align:left}
+.cf th{background:#1F3864;color:#fff;font-size:12px;font-weight:700;text-align:center}.cf .lbl{background:#EEF2F8;font-weight:700;width:19%;color:#20344B;font-size:13px}
+.cf input,.cf select,.cf textarea{margin:0;padding:7px 8px}.cf textarea{min-height:38px}
+.sec{background:#1F3864;color:#fff;font-weight:800;font-size:13px;padding:6px 10px;margin:18px 0 6px;border-radius:4px}
+.chk{display:flex;flex-wrap:wrap;gap:6px 16px}.chk label{display:flex;gap:6px;align-items:center;font-weight:500;margin:0;color:#20344B}.chk input{width:auto!important;margin:0}
+.fija{background:#F7F9FC;color:#20344B;font-weight:600}.mas{margin-top:8px}
+</style>
+<a href="{% if f %}/control-cambios/{{f.id}}{% else %}/control-cambios{% endif %}">← Volver</a>
+<h1>{% if f %}Editar {{f.numero}}{% else %}Formulario Control de Cambios de Arte{% endif %}</h1>
+<form method="post" class="cf" action="{% if f %}/control-cambios/{{f.id}}/editar{% else %}/control-cambios/nuevo{% endif %}">
+<input type="hidden" name="csrf_token" value="{{csrf}}"><input type="hidden" name="art_id" value="{{art.id}}">
+
+<section class="panel">
+<table><tr><td class="lbl">N.° de control</td><td class="fija">{{ f.numero if f else 'Se asigna al guardar' }}</td><td class="lbl">Fecha</td><td><input type="date" name="fecha_solicitud" value="{{d.fecha_solicitud}}"></td></tr>
+<tr><td class="lbl">Empresa</td><td colspan="3" class="fija">{{art.company}}</td></tr></table>
+
+<div class="sec">A. ARTE</div>
+<table><tr><td class="lbl">Producto</td><td colspan="3" class="fija">{{art.product}}</td></tr>
+<tr><td class="lbl">Código de arte</td><td class="fija">{{art.master_code}}</td><td class="lbl">Códigos SAP</td><td><input name="codigos_sap" value="{{d.codigos_sap}}"></td></tr>
+<tr><td class="lbl">Tipo de material</td><td colspan="3"><div class="chk">{% for x in MATERIALES %}<label><input type="checkbox" name="material" value="{{x}}" {% if x in d.material %}checked{% endif %}>{{x}}</label>{% endfor %}
+<input name="material_otro" value="{{d.material_otro}}" placeholder="Otro: especifique" style="max-width:190px"></div></td></tr>
+<tr><td class="lbl">Versión actual</td><td><input name="version_actual" value="{{d.version_actual}}" placeholder="V__"></td><td class="lbl">Versión propuesta *</td><td><input name="version_propuesta" value="{{d.version_propuesta}}" placeholder="V__" required></td></tr></table>
+{% if vigentes %}<p class="muted" style="margin:8px 0 0">Vigente hoy en la plataforma: {% for v in vigentes %}{{v.pais}} {{v.revision}}{% if not loop.last %} · {% endif %}{% endfor %}</p>{% endif %}
+
+<div class="sec">B. MOTIVO DEL CAMBIO</div>
+<table><tr><td class="lbl">Origen</td><td><div class="chk">{% for x in ORIGENES %}<label><input type="checkbox" name="origen" value="{{x}}" {% if x in d.origen %}checked{% endif %}>{{x}}</label>{% endfor %}</div></td></tr>
+<tr><td class="lbl">Descripción y justificación *</td><td><textarea name="descripcion" rows="3" required>{{d.descripcion}}</textarea></td></tr></table>
+
+<div class="sec">C. QUÉ CAMBIA (AFECTACIONES)</div>
+<table id="t-afect"><thead><tr><th style="width:6%">N.°</th><th style="width:22%">Elemento</th><th>Dice (versión actual)</th><th>Debe decir (versión propuesta)</th></tr></thead><tbody>
+{% set filas = [afect|length, FILAS_AFECT]|max %}
+{% for i in range(1, filas+1) %}{% set a = afect[i-1] if afect|length >= i else None %}
+<tr><td class="c">{{i}}</td><td><select name="af_elemento_{{i}}"><option value="">—</option>{% for e in ELEMENTOS %}<option {% if a and a.elemento==e %}selected{% endif %}>{{e}}</option>{% endfor %}</select></td>
+<td><textarea name="af_dice_{{i}}" rows="1">{{a.dice if a else ''}}</textarea></td><td><textarea name="af_debe_{{i}}" rows="1">{{a.debe_decir if a else ''}}</textarea></td></tr>{% endfor %}</tbody></table>
+<button type="button" class="btn sm gray mas" onclick="agregarFila('t-afect')">+ Agregar afectación</button>
+
+<div class="sec">D. PAÍSES</div>
+<table id="t-pais"><thead><tr><th style="width:20%">País</th><th>Estado de la versión propuesta</th><th style="width:24%">N.° de trámite y fecha</th><th style="width:17%">Fin de vigencia de la versión anterior</th></tr></thead><tbody>
+{% set filas_p = [paises_lista|length, FILAS_PAISES]|max %}
+{% for i in range(1, filas_p+1) %}{% set p = paises_lista[i-1] if paises_lista|length >= i else None %}
+<tr><td><select name="p_pais_{{i}}"><option value="">—</option>{% for co in countries %}<option value="{{co.id}}" {% if p and p.country_id==co.id %}selected{% endif %}>{{co.name}}</option>{% endfor %}</select></td>
+<td><div class="chk">{% for k,v in EST_REG.items() %}<label><input type="radio" name="p_est_{{i}}" value="{{k}}" {% if p and p.estado_regulatorio==k %}checked{% endif %}>{{ {'aprobado':'Aprob. autoridad','interno':'Interno','pendiente':'Pendiente'}[k] }}</label>{% endfor %}</div></td>
+<td><input name="p_tram_{{i}}" value="{{p.tramite if p else ''}}" placeholder="N.° de trámite" style="margin-bottom:4px"><input type="date" name="p_ftram_{{i}}" value="{{p.fecha_tramite if p else ''}}"></td>
+<td><input type="date" name="p_fin_{{i}}" value="{{p.fin_vigencia_anterior if p else ''}}"></td></tr>{% endfor %}</tbody></table>
+<button type="button" class="btn sm gray mas" onclick="agregarFila('t-pais')">+ Agregar país</button>
+<p class="muted" style="margin:6px 0 0">Interno: el cambio no requiere autoridad y lo aprueba la empresa. Sin fecha de fin de vigencia, la versión anterior pasa a obsoleta al cerrar el formulario.</p>
+
+<div class="sec">E. INVENTARIO Y FABRICANTE</div>
+<table><tr><td class="lbl">Material con la versión anterior</td><td><div class="chk">{% for x in DISPOSICION %}<label><input type="radio" name="disposicion" value="{{x}}" {% if d.disposicion==x %}checked{% endif %}>{{x}}</label>{% endfor %}</div></td></tr>
+<tr><td class="lbl">Nota a registrar en SAP</td><td><input name="nota_sap" value="{{d.nota_sap}}"></td></tr>
+<tr><td class="lbl">Fabricante con arte actualizado</td><td><div class="chk">
+<label><input type="radio" name="fabricante_actualizado" value="Sí" {% if d.fabricante_actualizado=='Sí' %}checked{% endif %}>Sí, fecha</label><input type="date" name="fecha_fabricante" value="{{d.fecha_fabricante}}" style="max-width:170px">
+<label><input type="radio" name="fabricante_actualizado" value="Pendiente" {% if d.fabricante_actualizado=='Pendiente' %}checked{% endif %}>Pendiente</label>
+<label><input type="radio" name="fabricante_actualizado" value="N/A" {% if d.fabricante_actualizado=='N/A' %}checked{% endif %}>N/A</label></div></td></tr></table>
+
+<div class="sec">F. APROBACIÓN</div>
+<table><tr><td class="lbl">Elaboró (Asuntos Regulatorios)</td><td class="fija">{% if elaboro %}{{elaboro.email}} · {{elaboro.fecha[:10]}}{% else %}{{u.email}} (se registra al guardar){% endif %}</td>
+<td class="lbl">Aprobó (Aseguramiento de Calidad)</td><td class="fija muted">Se registra cuando Calidad revisa el formulario</td></tr></table>
+
+<div style="margin-top:18px"><button class="btn">Guardar</button></div></section></form>
+<script>
+function agregarFila(id){
+  var tb=document.querySelector('#'+id+' tbody'), ult=tb.rows[tb.rows.length-1], n=tb.rows.length+1, nueva=ult.cloneNode(true);
+  nueva.querySelectorAll('input,select,textarea').forEach(function(e){
+    e.name=e.name.replace(/_\d+$/,'_'+n);
+    if(e.type==='radio'||e.type==='checkbox'){e.checked=false}else{e.value=''}
+  });
+  if(nueva.cells[0].classList.contains('c')) nueva.cells[0].textContent=n;
+  tb.appendChild(nueva);
+}
+</script>
+{% endblock %}

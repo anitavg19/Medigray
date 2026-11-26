@@ -1,0 +1,20 @@
+{% extends 'base.html' %}{% block content %}
+<h1>Control de Cambios de Arte</h1>
+<p class="muted">Formulario XXX-001-F01. Se llena una sola vez: al cerrarlo actualiza las versiones del arte por país, y se puede imprimir como comprobante para el expediente.</p>
+{% if puede_crear %}
+<section class="panel"><h2>Nuevo control de cambios</h2>
+<form method="get" action="/control-cambios/nuevo" class="grid">
+<div><label>Arte aprobado sobre el que se hará el cambio</label>
+<select name="art_id" required><option value="">Seleccione</option>{% for a in arts %}<option value="{{a.id}}">{{a.product}} · SAP {{a.sap_code}} · {{a.master_code}}</option>{% endfor %}</select></div>
+<div style="align-self:end"><button class="btn">Abrir formulario</button></div></form>
+<p class="muted">Si el producto todavía no tiene un arte aprobado, primero regístrelo como arte base (procedimiento, sección 7.1).</p></section>
+{% endif %}
+<section class="panel"><form method="get" class="flex"><label style="margin:0">Estado</label>
+<select name="estado" style="max-width:260px;margin:0"><option value="">Todos</option>{% for e in ESTADOS %}<option {% if e==estado %}selected{% endif %}>{{e}}</option>{% endfor %}</select>
+<button class="btn sm">Filtrar</button></form></section>
+<section class="panel scroll"><table><thead><tr><th>N.°</th><th>Producto</th><th>SAP</th><th>Versión propuesta</th><th>Estado</th><th>Actualizado</th><th></th></tr></thead><tbody>
+{% for f in forms %}<tr><td class="code"><a href="/control-cambios/{{f.id}}">{{f.numero}}</a></td><td>{{f.product}}</td><td>{{f.sap_code}}</td><td>{{f.vp or '—'}}</td>
+<td><span class="badge {% if f.estado=='Cerrado' %}ok{% elif f.estado in ['Devuelto','Rechazado'] %}red{% else %}warn{% endif %}">{{f.estado}}</span></td>
+<td>{{f.updated_at[:10]}}</td><td><a href="/control-cambios/{{f.id}}/imprimir" target="_blank">Imprimir</a></td></tr>
+{% else %}<tr><td colspan="7">Todavía no hay controles de cambios para esta empresa.</td></tr>{% endfor %}</tbody></table></section>
+{% endblock %}
