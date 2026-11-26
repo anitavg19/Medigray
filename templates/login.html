@@ -20,7 +20,7 @@
         <input type="email" name="email" required autofocus>
 
         <label>Contraseña</label>
-        <input type="password" name="password" required>
+        <div style="position:relative"><input id="pw-login" style="padding-right:84px" type="password" name="password" required><button type="button" onclick="verClave('pw-login', this)" style="position:absolute;right:8px;top:7px;border:0;background:#E5F2FC;color:#1768B0;border-radius:8px;padding:6px 10px;font-size:12px;font-weight:700;cursor:pointer">Mostrar</button></div><script>function verClave(id,b){var i=document.getElementById(id);var v=i.type==='password';i.type=v?'text':'password';b.textContent=v?'Ocultar':'Mostrar';}</script>
 
         <button class="btn" style="width:100%">
             Ingresar

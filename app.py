@@ -729,9 +729,9 @@ _registrar_formularios_v2(app,conn,require,csrf,view,audit,utc,company_ids,compa
 from modulos.campos_originales import registrar as _registrar_campos_existentes
 _registrar_campos_existentes(app,templates,conn,require,csrf,company_access,art_access,audit)
 
-# MEDIGRAY_ELIMINAR_USUARIOS
-from modulos.usuarios_eliminar import register as _registrar_eliminar_usuarios
-_registrar_eliminar_usuarios(sys.modules[__name__])
+# MEDIGRAY_USUARIOS_GESTION
+from modulos.usuarios_gestion import register as _registrar_usuarios_gestion
+_registrar_usuarios_gestion(sys.modules[__name__])
 
 if __name__=='__main__':
     if len(sys.argv)>1 and sys.argv[1]=='crear-admin': bootstrap()

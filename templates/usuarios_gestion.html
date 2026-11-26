@@ -1,0 +1,26 @@
+{% extends 'base.html' %}{% block content %}
+<style>.pw{position:relative}.pw input{padding-right:84px!important}.pw button{position:absolute;right:8px;top:7px;border:0;background:#E5F2FC;color:#1768B0;border-radius:8px;padding:6px 10px;font-size:12px;font-weight:700;cursor:pointer}.acc{display:flex;gap:6px;flex-wrap:wrap}.acc form{margin:0}</style>
+<h1>Gestión de usuarios</h1>
+<section class="panel"><h2>Usuarios</h2><div class="scroll"><table>
+<tr><th>Correo</th><th>Rol</th><th>Empresa</th><th>Activo</th><th>Creado</th><th>Creado por</th><th>Acción</th></tr>
+{% for r in rows %}<tr><td>{{r.email}}</td><td>{{r.role}}</td><td>{{r.empresas}}</td><td>{{'Sí' if r.active else 'No'}}</td><td>{{r.creado}}</td><td>{{r.creado_por}}</td>
+<td>{% if r.id != u.id %}<div class="acc">
+<form method="post" action="/usuarios/{{r.id}}/estado"><input type="hidden" name="csrf_token" value="{{csrf}}"><input type="hidden" name="active" value="{{0 if r.active else 1}}"><button class="btn sm gray">{{'Desactivar' if r.active else 'Activar'}}</button></form>
+<form method="post" action="/usuarios/{{r.id}}/eliminar" onsubmit="return confirm('¿Eliminar a {{r.email}}? Solo se puede si no ha hecho nada en el sistema.')"><input type="hidden" name="csrf_token" value="{{csrf}}"><button class="btn sm" style="background:#B3261E;color:#fff">Eliminar</button></form>
+</div>{% else %}<span class="muted">Usted</span>{% endif %}</td></tr>{% endfor %}
+</table></div><p class="muted">Eliminar solo funciona con usuarios que no han hecho nada en el sistema. Los demás se desactivan, para no perder la trazabilidad.</p></section>
+
+<section class="panel"><h2>Crear usuario</h2><form method="post" action="/usuarios" class="grid"><input type="hidden" name="csrf_token" value="{{csrf}}">
+<div><label>Correo</label><input required type="email" name="email"></div>
+<div><label>Contraseña temporal (mínimo 12 caracteres)</label><div class="pw"><input required type="password" name="password" minlength="12" id="pw-nuevo" autocomplete="new-password"><button type="button" onclick="verClave('pw-nuevo', this)">Mostrar</button></div></div>
+<div><label>Rol</label><select name="role">{% for r in roles %}<option>{{r}}</option>{% endfor %}</select></div>
+<div><label>Empresa asignada</label><select required name="company_id">{% for co in companies %}<option value="{{co.id}}">{{co.name}}</option>{% endfor %}</select></div>
+<div style="align-self:end"><button class="btn">Crear usuario</button></div></form></section>
+
+<section class="panel"><h2>Historial de cambios de usuarios</h2><div class="scroll"><table>
+<tr><th>Fecha</th><th>Cambio</th><th>Usuario</th><th>Hecho por</th><th>Detalle</th></tr>
+{% for h in historial %}<tr><td>{{h.fecha}}</td><td>{{h.accion}}</td><td>{{h.usuario}}</td><td>{{h.por}}</td><td>{{h.detalle}}</td></tr>
+{% else %}<tr><td colspan="5">Todavía no hay cambios registrados.</td></tr>{% endfor %}
+</table></div><p class="muted">Hora de Costa Rica. Se muestran los últimos cambios, del más reciente al más antiguo.</p></section>
+<script>function verClave(id, b){var i=document.getElementById(id);var v=i.type==='password';i.type=v?'text':'password';b.textContent=v?'Ocultar':'Mostrar';}</script>
+{% endblock %}
